@@ -37,7 +37,7 @@ const BookGenieModal = ({ isOpen, onClose, embedded = false, text, setText, resu
             if (!txt) {
                 setResult('Paste book text to summarize.');
             } else {
-                const js = await api('api/gemini-genie/summarize-text', {
+                const js = await api('/api/gemini-genie/summarize-text', {
                     method: 'POST',
                     body: JSON.stringify({ text: txt })
                 });
