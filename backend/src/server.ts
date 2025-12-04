@@ -28,7 +28,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/books", bookRouter);
 app.use("/api/clubs", clubRouter);
-app.use("/api/clubs/:clubId/chat", chatRoutes);
+app.use("/api/clubs", chatRoutes);
 app.use("/api/gemini-genie", genieRouter);
 app.use("/api/recommend", recommendRouter);
 
