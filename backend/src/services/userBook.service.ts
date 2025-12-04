@@ -440,10 +440,11 @@ export async function getReadingStats(userId: string) {
 
   // Calculate today's pages
   const today = new Date().toISOString().split("T")[0] as string;
-  const todaySession = await ReadingSessionModel.findOne({
+  const todaySessions = await ReadingSessionModel.find({
     userId: new Types.ObjectId(userId),
     date: today,
   }).exec();
+  const todayPagesSum = todaySessions.reduce((sum, s) => sum + (s.pages || 0), 0);
 
   // Get this month's pages
   const now = new Date();
@@ -479,9 +480,9 @@ export async function getReadingStats(userId: string) {
       startedAt: ub.startedAt,
     })),
     today: {
-      pagesRead: todaySession?.pages || 0,
+      pagesRead: todayPagesSum,
       goal: user.stats.dailyGoal || 30,
-      completed: (todaySession?.pages || 0) >= (user.stats.dailyGoal || 30),
+      completed: todayPagesSum >= (user.stats.dailyGoal || 30),
     },
     thisMonth: {
       pagesRead: thisMonthPages,
