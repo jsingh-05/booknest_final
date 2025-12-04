@@ -9,3 +9,4 @@ reportlab
 deep_translator
 PyPDF2
 google-generativeai
+gunicorn
