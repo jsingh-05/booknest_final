@@ -4,7 +4,8 @@ import type { Request, Response } from "express";
 
 const router = Router();
 
-const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+const MODEL = "gemini-1.5-flash-latest";
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || "").trim();
 const SUMMARIZER_URL = (process.env.SUMMARIZER_URL || "").trim();
 
@@ -105,6 +106,5 @@ router.post("/summarize-text", async (req, res) => {
   }
 });
 
-// duplicate removed in favor of single proxy-first, Gemini-fallback route
 
 export default router;
