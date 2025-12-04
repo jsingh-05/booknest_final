@@ -449,12 +449,14 @@ export async function getReadingStats(userId: string) {
   // Get this month's pages
   const now = new Date();
   const startOfMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  const nextMonthStartDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const startOfMonth = startOfMonthDate.toISOString().split("T")[0] as string;
-  const thisMonthSessions = await ReadingSessionModel.find({
-    userId: new Types.ObjectId(userId),
-    date: { $gte: startOfMonth },
-  }).exec();
-  const thisMonthPages = thisMonthSessions.reduce((sum, s) => sum + s.pages, 0);
+  const nextMonthStart = nextMonthStartDate.toISOString().split("T")[0] as string;
+  const monthAgg = await ReadingSessionModel.aggregate([
+    { $match: { userId: new Types.ObjectId(userId), date: { $gte: startOfMonth, $lt: nextMonthStart } } },
+    { $group: { _id: null, pages: { $sum: "$pages" } } },
+  ]).exec();
+  const thisMonthPages = (monthAgg[0]?.pages as number) || 0;
 
   // Get this year's books completed
   const startOfYearDate = new Date(now.getFullYear(), 0, 1);
