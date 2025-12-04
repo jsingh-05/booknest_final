@@ -5,13 +5,11 @@ import math
 import google.generativeai as genai
 from PyPDF2 import PdfReader
 
-# Load Gemini API key
-with open("config.json") as f:
-    config = json.load(f)
-API_KEY = config.get("GEMINI_API_KEY")
+API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not API_KEY:
-    raise ValueError("⚠️ No GEMINI_API_KEY found in config.json")
+    raise ValueError("⚠️ GEMINI_API_KEY environment variable is missing")
+
 
 genai.configure(api_key=API_KEY)
 MODEL_NAME = "gemini-2.5-flash-lite"  # fast + free
