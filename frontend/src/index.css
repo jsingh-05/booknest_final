@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* *** RICH & COLORFUL VINTAGE PALETTE (AESTHETIC REFINEMENT) *** */
+    --background: 40 25% 94%; /* Warm Vanilla/Cream Base */
+    --foreground: 220 20% 25%; /* Deep Navy Ink for Text (Softer) */
+
+    --card: 40 30% 98%; /* Clean Canvas for Cards */
+    --card-foreground: 220 20% 25%;
+
+    --popover: 40 30% 98%;
+    --popover-foreground: 220 20% 25%;
+
+    --primary: 200 45% 45%; /* Deep Teal (Action/Main) */
+    --primary-foreground: 40 30% 98%;
+    --primary-glow: 200 55% 55%;
+
+    --secondary: 340 45% 50%; /* Rich Berry/Maroon (Accent) */
+    --secondary-foreground: 40 30% 98%;
+    
+    --tertiary: 170 30% 65%; /* Dusty Mint - Light Secondary Background */
+    --quaternary: 250 20% 70%; /* Light Lavender - Subtle Borders/Accents */
+
+    --accent: 35 60% 55%; /* Mustard Gold (Streak/Highlight) */
+    --accent-foreground: 220 20% 25%;
+    --accent-glow: 35 70% 65%;
+
+    --muted: 40 20% 75%; /* Aged Linen / Subtle Data */
+    --muted-foreground: 220 15% 40%;
+
+    --success: 140 45% 40%; /* Hunter Green (Success/Goal) */
+    --success-foreground: 40 30% 98%;
+
+    --destructive: 0 70% 50%; /* Standard, rich Red for errors */
+    --destructive-foreground: 40 30% 98%;
+
+    --border: 220 10% 70%; /* Soft Blue-Gray Border (Softer) */
+    --input: 40 20% 85%;
+    --ring: 200 50% 65%; /* Brighter Focus Ring */
+
+    --radius: 0.5rem; 
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(45 65% 50%));
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--quaternary)), hsl(var(--tertiary)));
+
+    /* Shadows */
+    --shadow-book: 0 4px 10px -2px hsl(220 20% 20% / 0.1); /* Reduced shadow opacity */
+    --shadow-elevated: 0 10px 20px -5px hsl(220 20% 20% / 0.15);
+    --shadow-glow: 0 0 12px hsl(35 60% 55% / 0.5);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Dark mode is left as is for theme consistency */
+  .dark {
+    --background: 230 20% 12%; 
+    --foreground: 40 35% 90%;
+    --card: 230 18% 15%;
+    --card-foreground: 40 35% 90%;
+    --popover: 230 18% 15%;
+    --popover-foreground: 40 35% 90%;
+    --primary: 200 75% 60%;
+    --primary-foreground: 230 20% 12%;
+    --primary-glow: 200 80% 70%;
+    --secondary: 280 50% 65%;
+    --secondary-foreground: 230 20% 12%;
+    --accent: 35 90% 65%;
+    --accent-foreground: 230 20% 12%;
+    --accent-glow: 35 95% 75%;
+    --muted: 230 15% 20%;
+    --muted-foreground: 40 20% 60%;
+    --success: 150 65% 55%;
+    --success-foreground: 230 20% 12%;
+    --destructive: 0 75% 65%;
+    --destructive-foreground: 40 35% 98%;
+    --border: 230 15% 22%;
+    --input: 230 15% 22%;
+    --ring: 200 75% 60%;
+    --gradient-primary: linear-gradient(135deg, hsl(200 75% 60%), hsl(280 50% 65%));
+    --gradient-accent: linear-gradient(135deg, hsl(35 90% 65%), hsl(40 85% 70%));
+    --shadow-book: 0 4px 16px -3px hsl(0 0% 0% / 0.5);
+    --shadow-elevated: 0 10px 30px -5px hsl(0 0% 0% / 0.6);
+    --shadow-glow: 0 0 32px hsl(200 75% 60% / 0.3);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
