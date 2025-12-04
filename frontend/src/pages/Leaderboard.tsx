@@ -38,10 +38,10 @@ export default function Leaderboard() {
     let mounted = true;
     (async () => {
       try {
-        const all = await api("/users/leaderboard?range=all");
-        const week = await api("/users/leaderboard?range=week");
-        const month = await api("/users/leaderboard?range=month");
-        const profile = await api("/auth/me").catch(() => null);
+        const all = await api("/api/users/leaderboard?range=all");
+        const week = await api("/api/users/leaderboard?range=week");
+        const month = await api("/api/users/leaderboard?range=month");
+        const profile = await api("/api/auth/me").catch(() => null);
         if (!mounted) return;
         setTopReaders((all.data || []).map((r: ApiLeaderboardEntry, i: number) => ({
           rank: i + 1,

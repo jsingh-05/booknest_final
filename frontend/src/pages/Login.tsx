@@ -26,7 +26,7 @@ export default function Login() {
       const fd = new FormData(form);
       const email = String(fd.get("email") || "").trim();
       const password = String(fd.get("password") || "").trim();
-      const resp = await api("/auth/login", {
+      const resp = await api("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
@@ -58,7 +58,7 @@ export default function Login() {
       if (!usernameRegex.test(username)) throw new Error("Username must be 3-20 characters, letters/numbers/underscore");
       if (password.length < 6) throw new Error("Password must be at least 6 characters");
       if (password !== confirm) throw new Error("Passwords do not match");
-      const resp = await api("/auth/register", {
+      const resp = await api("/api/auth/register", {
         method: "POST",
         body: JSON.stringify({ email, username, password }),
       });

@@ -64,28 +64,28 @@ export default function BookClubs() {
     queryFn: async () => {
       const token = getToken();
       if (!token && scope === "explore") {
-        return api(`/clubs/public${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+        return api(`/api/clubs/public${q ? `?q=${encodeURIComponent(q)}` : ""}`);
       }
-      return api(`/clubs?scope=${scope}${q ? `&q=${encodeURIComponent(q)}` : ""}`);
+      return api(`/api/clubs?scope=${scope}${q ? `&q=${encodeURIComponent(q)}` : ""}`);
     },
     enabled: scope !== "invites",
   });
 
   const invitesQ = useQuery<{ items: { token: string; expiresAt?: string; club: Club }[] }>({
     queryKey: ["clubInvites"],
-    queryFn: async () => api(`/clubs/invites`),
+    queryFn: async () => api(`/api/clubs/invites`),
     enabled: scope === "invites",
   });
 
   const myClubsQ = useQuery<ClubsResponse>({
     queryKey: ["clubs", "mine", getToken()],
-    queryFn: async () => api(`/clubs?scope=mine`),
+    queryFn: async () => api(`/api/clubs?scope=mine`),
     enabled: Boolean(getToken()),
   });
 
   const meQ = useQuery<{ user: { id: string; email: string; username: string } }>({
     queryKey: ["me", getToken()],
-    queryFn: async () => api(`/auth/me`),
+    queryFn: async () => api(`/api/auth/me`),
     enabled: Boolean(getToken()),
   });
 
@@ -98,25 +98,25 @@ export default function BookClubs() {
 
   const messagesQ = useQuery<Message[]>({
     queryKey: ["clubMessages", selectedClub?._id],
-    queryFn: async () => (selectedClub ? api(`/clubs/${selectedClub._id}/messages?limit=50`) : []),
+    queryFn: async () => (selectedClub ? api(`/api/clubs/${selectedClub._id}/messages?limit=50`) : []),
     enabled: !!selectedClub,
     retry: false,
   });
 
   const clubDetailQ = useQuery<ClubDetail>({
     queryKey: ["clubDetail", selectedClub?._id],
-    queryFn: async () => (selectedClub ? api(`/clubs/${selectedClub._id}`) : null),
+    queryFn: async () => (selectedClub ? api(`/api/clubs/${selectedClub._id}`) : null),
     enabled: !!selectedClub,
   });
 
   const membersQ = useQuery<MembersResponse>({
     queryKey: ["clubMembers", selectedClub?._id],
-    queryFn: async () => (selectedClub ? api(`/clubs/${selectedClub._id}/members`) : { items: [] }),
+    queryFn: async () => (selectedClub ? api(`/api/clubs/${selectedClub._id}/members`) : { items: [] }),
     enabled: !!selectedClub,
   });
 
   const joinClub = useMutation<void, Error, void>({
-    mutationFn: async () => api(`/clubs/${selectedClub!._id}/join`, { method: "POST" }),
+    mutationFn: async () => api(`/api/clubs/${selectedClub!._id}/join`, { method: "POST" }),
     onSuccess: () => {
       setJoined(true);
       setSelectedClub((prev) => (prev ? { ...prev, memberCount: prev.memberCount + 1 } as Club : prev));
@@ -131,7 +131,7 @@ export default function BookClubs() {
 
   const postMessage = useMutation<unknown, Error, void>({
     mutationFn: async () =>
-      api(`/clubs/${selectedClub!._id}/messages`, {
+      api(`/api/clubs/${selectedClub!._id}/messages`, {
         method: "POST",
         body: JSON.stringify({ content: messageText }),
       }),
@@ -143,7 +143,7 @@ export default function BookClubs() {
 
   const postReply = useMutation<unknown, Error, void>({
     mutationFn: async () =>
-      api(`/clubs/${selectedClub!._id}/messages`, {
+      api(`/api/clubs/${selectedClub!._id}/messages`, {
         method: "POST",
         body: JSON.stringify({ content: replyText, parentId: replyFor }),
       }),
@@ -155,7 +155,7 @@ export default function BookClubs() {
   });
 
   const acceptInvite = useMutation<{ message: string }, Error, { clubId: string; token: string }>({
-    mutationFn: async (payload) => api(`/clubs/${payload.clubId}/accept-invite`, { method: "POST", body: JSON.stringify({ token: payload.token }) }),
+    mutationFn: async (payload) => api(`/api/clubs/${payload.clubId}/accept-invite`, { method: "POST", body: JSON.stringify({ token: payload.token }) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clubInvites"] });
       queryClient.invalidateQueries({ queryKey: ["clubs"] });
@@ -164,28 +164,28 @@ export default function BookClubs() {
   });
 
   const setClubBook = useMutation<{ currentBook: Club["currentBook"] }, Error, { title: string; authors?: string[]; coverUrl?: string; totalPages?: number }>({
-    mutationFn: async (payload) => api(`/clubs/${selectedClub!._id}/current-book`, { method: "POST", body: JSON.stringify(payload) }),
+    mutationFn: async (payload) => api(`/api/clubs/${selectedClub!._id}/current-book`, { method: "POST", body: JSON.stringify(payload) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clubDetail", selectedClub!._id] });
     },
   });
 
   const addScheduleItem = useMutation<{ readingSchedule: NonNullable<Club["readingSchedule"]> }, Error, { title: string; order?: number; dueDate?: string }>({
-    mutationFn: async (payload) => api(`/clubs/${selectedClub!._id}/schedule`, { method: "POST", body: JSON.stringify(payload) }),
+    mutationFn: async (payload) => api(`/api/clubs/${selectedClub!._id}/schedule`, { method: "POST", body: JSON.stringify(payload) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clubDetail", selectedClub!._id] });
     },
   });
 
   const toggleScheduleItem = useMutation<{ readingSchedule: NonNullable<Club["readingSchedule"]> }, Error, { itemId: string; completed: boolean }>({
-    mutationFn: async (payload) => api(`/clubs/${selectedClub!._id}/schedule/${payload.itemId}`, { method: "PATCH", body: JSON.stringify({ completed: payload.completed }) }),
+    mutationFn: async (payload) => api(`/api/clubs/${selectedClub!._id}/schedule/${payload.itemId}`, { method: "PATCH", body: JSON.stringify({ completed: payload.completed }) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clubDetail", selectedClub!._id] });
     },
   });
 
   const deleteScheduleItem = useMutation<{ readingSchedule: NonNullable<Club["readingSchedule"]> }, Error, { itemId: string }>({
-    mutationFn: async (payload) => api(`/clubs/${selectedClub!._id}/schedule/${payload.itemId}`, { method: "DELETE" }),
+    mutationFn: async (payload) => api(`/api/clubs/${selectedClub!._id}/schedule/${payload.itemId}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clubDetail", selectedClub!._id] });
     },
@@ -195,7 +195,7 @@ export default function BookClubs() {
     mutationFn: async () => {
       const b = clubDetailQ.data?.club.currentBook;
       if (!b || !b.title) throw new Error("No current book set");
-      return api(`/books`, { method: "POST", body: JSON.stringify({ title: b.title, authors: b.authors || [], status: "planned", pageCount: b.totalPages, coverUrl: b.coverUrl }) });
+      return api(`/api/books`, { method: "POST", body: JSON.stringify({ title: b.title, authors: b.authors || [], status: "planned", pageCount: b.totalPages, coverUrl: b.coverUrl }) });
     },
   });
 
@@ -203,13 +203,13 @@ export default function BookClubs() {
     mutationFn: async () => {
       const b = clubDetailQ.data?.club.currentBook;
       if (!b || !b.title) throw new Error("No current book set");
-      return api(`/books`, { method: "POST", body: JSON.stringify({ title: b.title, authors: b.authors || [], pageCount: b.totalPages, coverUrl: b.coverUrl }) });
+      return api(`/api/books`, { method: "POST", body: JSON.stringify({ title: b.title, authors: b.authors || [], pageCount: b.totalPages, coverUrl: b.coverUrl }) });
     },
   });
 
   const createClub = useMutation<CreateClubResponse, Error, void>({
     mutationFn: async () =>
-      api(`/clubs`, {
+      api(`/api/clubs`, {
         method: "POST",
         body: JSON.stringify({
           name: createName,
@@ -536,7 +536,7 @@ export default function BookClubs() {
                                     </Button>
                                     {canDelete && (
                                       <Button variant="outline" size="sm" className="h-8" onClick={async () => {
-                                        await api(`/clubs/${selectedClub!._id}/messages/${m._id}`, { method: "DELETE" }).catch(() => {});
+                                        await api(`/api/clubs/${selectedClub!._id}/messages/${m._id}`, { method: "DELETE" }).catch(() => {});
                                         await queryClient.invalidateQueries({ queryKey: ["clubMessages", selectedClub!._id] });
                                       }}>
                                         Delete
@@ -572,7 +572,7 @@ export default function BookClubs() {
                                             {rCanDelete && (
                                               <div className="mt-2">
                                                 <Button variant="outline" size="sm" onClick={async () => {
-                                                  await api(`/clubs/${selectedClub!._id}/messages/${r._id}`, { method: "DELETE" }).catch(() => {});
+                                                  await api(`/api/clubs/${selectedClub!._id}/messages/${r._id}`, { method: "DELETE" }).catch(() => {});
                                                   await queryClient.invalidateQueries({ queryKey: ["clubMessages", selectedClub!._id] });
                                                 }}>Delete</Button>
                                               </div>
@@ -725,7 +725,7 @@ export default function BookClubs() {
 function InviteForm({ clubId, onInvited }: { clubId: string; onInvited?: () => void }) {
   const [email, setEmail] = useState("");
   const invite = useMutation<{ token: string; expiresAt?: string }, Error, void>({
-    mutationFn: async () => api(`/clubs/${clubId}/invite`, { method: "POST", body: JSON.stringify({ email }) }),
+    mutationFn: async () => api(`/api/clubs/${clubId}/invite`, { method: "POST", body: JSON.stringify({ email }) }),
     onSuccess: () => {
       setEmail("");
       if (onInvited) onInvited();
@@ -762,7 +762,7 @@ function BookPicker({
   async function searchBooks() {
     setLoading(true);
     try {
-      const r = await api(`/books/search?q=${encodeURIComponent(query)}`);
+      const r = await api(`/api/books/search?q=${encodeURIComponent(query)}`);
       const items = [...(r.local || []), ...(r.external || [])].map((b: Record<string, unknown>) => ({
         title: String(b.title || ""),
         authors: Array.isArray(b.authors) ? (b.authors as unknown[]).map(String) : (b.author ? [String(b.author as string)] : []),
@@ -777,7 +777,7 @@ function BookPicker({
 
   async function setBookForClub(book: PickerBook) {
     if (!clubId) return;
-    await api(`/clubs/${clubId}/current-book`, {
+    await api(`/api/clubs/${clubId}/current-book`, {
       method: "POST",
       body: JSON.stringify(book),
     });

@@ -70,7 +70,7 @@ export default function Profile() {
     let mounted = true;
     (async () => {
       try {
-        const me = await api("/auth/me");
+        const me = await api("/api/auth/me");
         if (!mounted) return;
         const u = me?.user || {};
         setUsername(String(u.username || ""));
@@ -94,8 +94,8 @@ export default function Profile() {
           return String(obj?.tag || "");
         }).filter(Boolean));
 
-        const completed = await api("/books/completed").catch(() => ({ books: [] }));
-        const dnf = await api("/books/dnf").catch(() => ({ books: [] }));
+        const completed = await api("/api/books/completed").catch(() => ({ books: [] }));
+        const dnf = await api("/api/books/dnf").catch(() => ({ books: [] }));
         type UB = { bookId?: { title?: string; authors?: string[] }; completedAt?: string; dnfAt?: string };
         const compBooks: UB[] = Array.isArray(completed?.books) ? (completed.books as UB[]) : [];
         const dnfBooks: UB[] = Array.isArray(dnf?.books) ? (dnf.books as UB[]) : [];
@@ -114,7 +114,7 @@ export default function Profile() {
         const hist = [...histCompleted, ...histDNF].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setHistory(hist);
 
-        const statsResp = await api("/books/stats").catch(() => null);
+        const statsResp = await api("/api/books/stats").catch(() => null);
         if (statsResp) {
           setYearCompleted(Number(statsResp?.thisMonth?.booksCompleted || 0));
           setMonthPages(Number(statsResp?.thisMonth?.pagesRead || 0));
@@ -193,7 +193,7 @@ export default function Profile() {
                             if (draftUsername && draftUsername !== username) payload.username = draftUsername;
                             if (draftEmail && draftEmail !== email) payload.email = draftEmail;
                             if (Object.keys(payload).length > 0) {
-                              const resp = await api(`/users/me`, { method: "PATCH", body: JSON.stringify(payload) });
+                              const resp = await api(`/api/users/me`, { method: "PATCH", body: JSON.stringify(payload) });
                               const u2 = resp?.user || {};
                               setUsername(String(u2.username || draftUsername || username));
                               setEmail(String(u2.email || draftEmail || email));
@@ -210,7 +210,7 @@ export default function Profile() {
                           const ok = window.confirm("Delete your profile permanently? This cannot be undone.");
                           if (!ok) return;
                           try {
-                            await api(`/users/me`, { method: "DELETE" });
+                            await api(`/api/users/me`, { method: "DELETE" });
                           } catch (e) { void 0; }
                           setToken("");
                           navigate("/login");
@@ -326,7 +326,7 @@ export default function Profile() {
                           <input type="number" min={1} className="border rounded px-3 py-2 w-32" value={yearGoal} onChange={(e) => setYearGoal(Number(e.target.value) || 1)} />
                           <Button variant="default" onClick={async () => {
                             try {
-                              await api(`/users/me`, { method: "PATCH", body: JSON.stringify({ yearGoal }) });
+                              await api(`/api/users/me`, { method: "PATCH", body: JSON.stringify({ yearGoal }) });
                             } catch (e) { void 0; }
                           }}>Save Goal</Button>
                         </div>
@@ -434,7 +434,7 @@ export default function Profile() {
                             variant="default"
                             onClick={async () => {
                               try {
-                                await api(`/users/me`, { method: "PATCH", body: JSON.stringify({ preferences, dislikes }) });
+                                await api(`/api/users/me`, { method: "PATCH", body: JSON.stringify({ preferences, dislikes }) });
                                 toast.success("Personalization saved");
                               } catch (e) { void 0; }
                             }}

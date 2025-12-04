@@ -1,4 +1,4 @@
-const BASE = ((import.meta as unknown as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL) || "http://localhost:5001/api";
+const BASE = ((import.meta as unknown as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL);
 
 export function getToken() {
   return localStorage.getItem("bn_token") || "";

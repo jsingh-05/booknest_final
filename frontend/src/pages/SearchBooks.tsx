@@ -78,7 +78,7 @@ export default function SearchBooks() {
     abortRef.current = controller;
     setLoading(true);
     try {
-      const data = await api(`/books/search?q=${encodeURIComponent(q)}`, { signal: controller.signal });
+      const data = await api(`/api/books/search?q=${encodeURIComponent(q)}`, { signal: controller.signal });
       const merged: RawBook[] = [...(data.local || []), ...(data.external || [])];
       const mapped: UiBook[] = merged.map((b: RawBook, idx: number) => {
         const id = typeof b._id === "string" ? b._id : idx;
@@ -156,7 +156,7 @@ export default function SearchBooks() {
         setResults([]);
         setDisplayResults([]);
       } else if (mapped.length === 0 && q) {
-        const fallback = await api(`/books/search?q=${encodeURIComponent("")}`, { signal: controller.signal }).catch(() => ({ local: [], external: [] }));
+        const fallback = await api(`/api/books/search?q=${encodeURIComponent("")}`, { signal: controller.signal }).catch(() => ({ local: [], external: [] }));
         const fraw: RawBook[] = [...(fallback.local || []), ...(fallback.external || [])];
         const fm: UiBook[] = fraw.map((b: RawBook, idx: number) => {
           const id = typeof b._id === "string" ? b._id : idx;
@@ -467,7 +467,7 @@ export default function SearchBooks() {
                     <div className="mt-6 flex gap-3">
                       <Button variant="default" className="flex-1" onClick={async () => {
                         try {
-                          await api(`/books`, { method: "POST", body: JSON.stringify({ isbn: selectedBook?.isbn, title: selectedBook!.title, authors: selectedBook!.author ? selectedBook!.author.split(", ") : [], pageCount: selectedBook!.pageCount, status: "planned" }) });
+                          await api(`/api/books`, { method: "POST", body: JSON.stringify({ isbn: selectedBook?.isbn, title: selectedBook!.title, authors: selectedBook!.author ? selectedBook!.author.split(", ") : [], pageCount: selectedBook!.pageCount, status: "planned" }) });
                           navigate("/dashboard");
                         } catch (e) { console.warn("Add planned failed", e); }
                       }}>
@@ -475,7 +475,7 @@ export default function SearchBooks() {
                       </Button>
                       <Button variant="accent" className="flex-1" onClick={async () => {
                         try {
-                          await api(`/books`, { method: "POST", body: JSON.stringify({ isbn: selectedBook?.isbn, title: selectedBook!.title, authors: selectedBook!.author ? selectedBook!.author.split(", ") : [], pageCount: selectedBook!.pageCount, status: "reading" }) });
+                          await api(`/api/books`, { method: "POST", body: JSON.stringify({ isbn: selectedBook?.isbn, title: selectedBook!.title, authors: selectedBook!.author ? selectedBook!.author.split(", ") : [], pageCount: selectedBook!.pageCount, status: "reading" }) });
                           setSelectedBook(null);
                           navigate("/dashboard");
                         } catch (e) { console.warn("Start reading failed", e); }

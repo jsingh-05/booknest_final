@@ -125,7 +125,7 @@ export default function Dashboard() {
     let mounted = true;
     (async () => {
       try {
-        const data = await api("/books/stats");
+        const data = await api("/api/books/stats");
         if (!mounted) return;
         setStreak(data.streak?.current || 0);
         setBooksCompleted(data.stats?.totalBooksCompleted || 0);
@@ -176,7 +176,7 @@ export default function Dashboard() {
           }
         }
         if (!first) {
-          const curr = await api("/books/current").catch(() => null);
+          const curr = await api("/api/books/current").catch(() => null);
           const ub = curr?.books?.[0];
           if (ub) {
             setUserBookId(ub._id || ub.id);
@@ -221,24 +221,24 @@ export default function Dashboard() {
             }
           }
         }
-        const me = await api("/auth/me").catch(() => null);
+        const me = await api("/api/auth/me").catch(() => null);
         const prefsCount = Array.isArray(me?.user?.preferences) ? me!.user!.preferences!.length : 0;
         const dislikesCount = Array.isArray(me?.user?.dislikes) ? me!.user!.dislikes!.length : 0;
         setHasPersonalization((prefsCount + dislikesCount) > 0);
         if (me?.user?.id) {
-          const stats = await api(`/users/${me.user.id}/stats`).catch(() => null);
+          const stats = await api(`/api/users/${me.user.id}/stats`).catch(() => null);
           if (stats) {
             setGenresCount(stats.stats?.distinctGenresCount || 0);
             setTotalPagesRead(stats.stats?.totalPages || 0);
           }
-          const lb = await api(`/users/leaderboard?range=all`).catch(() => null);
+          const lb = await api(`/api/users/leaderboard?range=all`).catch(() => null);
           if (lb?.data && Array.isArray(lb.data)) {
             const users = lb.data as Array<{ id?: string; _id?: string; userId?: string }>;
             const idx = users.findIndex((u) => (u.id === me.user.id) || (u._id === me.user.id) || (u.userId === me.user.id));
             if (idx >= 0) setRank(idx + 1);
           }
         }
-        const planned = await api(`/books/planned`).catch(() => ({ books: [] }));
+        const planned = await api(`/api/books/planned`).catch(() => ({ books: [] }));
         setReadingList(Array.isArray(planned.books) ? planned.books.map((ub) => {
           const auth = ub?.bookId?.authors;
           const authorsList = Array.isArray(auth) ? auth : (typeof auth === "string" ? [auth] : []);
@@ -256,10 +256,10 @@ export default function Dashboard() {
         let rec: { items?: RecoItem[] } | null = null;
         const uid = me?.user?.id || me?.user?._id || null;
         if (uid) {
-          rec = await api(`/recommend?userId=${encodeURIComponent(uid)}`).catch(() => null);
+          rec = await api(`/api/recommend?userId=${encodeURIComponent(uid)}`).catch(() => null);
         }
         if (!rec || !Array.isArray(rec?.items) || (Array.isArray(rec.items) && rec.items.length === 0)) {
-          const fallback = await api(`/books/recommendations`).catch(() => ({ recommendations: [] }));
+          const fallback = await api(`/api/books/recommendations`).catch(() => ({ recommendations: [] }));
           type RecBook = { title?: string; authors?: string[] | string; isbn?: string; coverUrl?: string; thumbnail?: string };
           const results: RecBook[] = Array.isArray(fallback?.recommendations) ? (fallback.recommendations as RecBook[]).slice(0, 8) : [];
           setRecommended(results.map((b: RecBook) => {
@@ -350,8 +350,8 @@ export default function Dashboard() {
                   <Button className="px-6" onClick={async () => {
                     if (!userBookId || pagesToAdd <= 0) return;
                     try {
-                      await api(`/books/${userBookId}/progress`, { method: "PATCH", body: JSON.stringify({ pages: pagesToAdd }) });
-                      const refreshed = await api("/books/stats");
+                      await api(`/api/books/${userBookId}/progress`, { method: "PATCH", body: JSON.stringify({ pages: pagesToAdd }) });
+                      const refreshed = await api("/api/books/stats");
                       const updated = Array.isArray(refreshed.currentBooks) ? refreshed.currentBooks[0] : null;
                       if (updated) {
                         setCurrentPages(updated.progress?.pagesRead || currentPages + pagesToAdd);
@@ -371,8 +371,8 @@ export default function Dashboard() {
                     onClick={async () => {
                       if (!userBookId) return;
                       try {
-                        await api(`/books/${userBookId}/complete`, { method: "POST" });
-                        const refreshed = await api("/books/stats");
+                        await api(`/api/books/${userBookId}/complete`, { method: "POST" });
+                        const refreshed = await api("/api/books/stats");
                         setBooksCompleted(refreshed.stats?.totalBooksCompleted || booksCompleted + 1);
                         const first = Array.isArray(refreshed.currentBooks) ? refreshed.currentBooks[0] : null;
                         if (first) {
@@ -391,7 +391,7 @@ export default function Dashboard() {
                           setPrevPages(0);
                           setTotalPages(0);
                         }
-                        const plannedAfter = await api(`/books/planned`).catch(() => ({ books: [] }));
+                        const plannedAfter = await api(`/api/books/planned`).catch(() => ({ books: [] }));
                         setReadingList(Array.isArray(plannedAfter.books) ? plannedAfter.books.map((ub) => {
                           const auth = ub?.bookId?.authors;
                           const authorsList = Array.isArray(auth) ? auth : (typeof auth === "string" ? [auth] : []);
@@ -417,8 +417,8 @@ export default function Dashboard() {
                     onClick={async () => {
                       if (!userBookId) return;
                       try {
-                        await api(`/books/${userBookId}/dnf`, { method: "POST" });
-                        const refreshed = await api("/books/stats");
+                        await api(`/api/books/${userBookId}/dnf`, { method: "POST" });
+                        const refreshed = await api("/api/books/stats");
                         const first = Array.isArray(refreshed.currentBooks) ? refreshed.currentBooks[0] : null;
                         if (first) {
                           setUserBookId(first.id);
@@ -436,7 +436,7 @@ export default function Dashboard() {
                           setPrevPages(0);
                           setTotalPages(0);
                         }
-                        const plannedAfter = await api(`/books/planned`).catch(() => ({ books: [] }));
+                        const plannedAfter = await api(`/api/books/planned`).catch(() => ({ books: [] }));
                         setReadingList(Array.isArray(plannedAfter.books) ? plannedAfter.books.map((ub) => {
                           const auth = ub?.bookId?.authors;
                           const authorsList = Array.isArray(auth) ? auth : (typeof auth === "string" ? [auth] : []);
@@ -612,8 +612,8 @@ export default function Dashboard() {
                     />
                     <Button size="sm" onClick={async () => {
                       try {
-                        await api(`/users/me/goal`, { method: "PATCH", body: JSON.stringify({ dailyGoal: goalInput }) });
-                        const refreshed = await api(`/books/stats`);
+                        await api(`/api/users/me/goal`, { method: "PATCH", body: JSON.stringify({ dailyGoal: goalInput }) });
+                        const refreshed = await api(`/api/books/stats`);
                         setTodayGoal(refreshed.today?.goal ?? goalInput);
                         setEditingGoal(false);
                       } catch (e) { setEditingGoal(false); }
@@ -690,8 +690,8 @@ export default function Dashboard() {
                         </div>
                         <Button size="sm" variant="secondary" onClick={async () => {
                           try {
-                            await api(`/books`, { method: "POST", body: JSON.stringify({ bookId: b.bookId, status: "reading" }) });
-                            const refreshed = await api("/books/stats");
+                            await api(`/api/books`, { method: "POST", body: JSON.stringify({ bookId: b.bookId, status: "reading" }) });
+                            const refreshed = await api("/api/books/stats");
                             const first = Array.isArray(refreshed.currentBooks) ? refreshed.currentBooks[0] : null;
                             if (first) {
                               setUserBookId(first.id);
@@ -704,7 +704,7 @@ export default function Dashboard() {
                           setPrevPages(first.progress?.pagesRead || 0);
                           setTotalPages(first.progress?.totalPages || 0);
                         }
-                        const plannedAfter = await api(`/books/planned`).catch(() => ({ books: [] }));
+                        const plannedAfter = await api(`/api/books/planned`).catch(() => ({ books: [] }));
                         setReadingList(Array.isArray(plannedAfter.books) ? plannedAfter.books.map((ub) => {
                           const auth = ub?.bookId?.authors;
                           const authorsList = Array.isArray(auth) ? auth : (typeof auth === "string" ? [auth] : []);
