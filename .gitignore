@@ -1,0 +1,21 @@
+# Node
+node_modules/
+dist/
+.vscode/
+.env
+.env.local
+.DS_Store
+package-lock.json
+bun.lockb
+
+# Python
+venv/
+__pycache__/
+*.pyc
+pyvenv.cfg
+
+# Local build artifacts
+frontend/dist/
+backend/dist/
+booknest-summarizer/__pycache__/
+booknest-summarizer/config.json

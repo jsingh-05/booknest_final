@@ -1,0 +1,11 @@
+Flask>=2.3.2
+google-genai>=0.9.0
+PyMuPDF>=1.22.0
+tqdm
+requests
+pdfplumber
+Pillow>=9.5.0
+reportlab
+deep_translator
+PyPDF2
+google-generativeai
