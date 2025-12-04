@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, getToken } from "@/lib/api";
 import { io } from "socket.io-client";
+import { useToast } from "@/hooks/use-toast";
 
 type Club = {
   _id: string;
@@ -49,6 +50,7 @@ type ClubDetail = { club: Club; isMember: boolean };
 export default function BookClubs() {
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [q, setQ] = useState("");
   const [scope, setScope] = useState<"explore" | "mine" | "invites">("explore");
   const [joined, setJoined] = useState(false);
@@ -95,18 +97,26 @@ export default function BookClubs() {
   const [messageText, setMessageText] = useState("");
   const [replyFor, setReplyFor] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [mustJoinOpen, setMustJoinOpen] = useState(false);
+  const [editingFor, setEditingFor] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const clubDetailQ = useQuery<ClubDetail>({
+    queryKey: ["clubDetail", selectedClub?._id],
+    queryFn: async () => (selectedClub ? api(`/api/clubs/${selectedClub._id}`) : null),
+    enabled: !!selectedClub,
+  });
+  const isMemberNow = Boolean(clubDetailQ.data?.isMember || joined);
+  function ensureMember() {
+    if (!isMemberNow) setMustJoinOpen(true);
+    return isMemberNow;
+  }
+
 
   const messagesQ = useQuery<Message[]>({
     queryKey: ["clubMessages", selectedClub?._id],
     queryFn: async () => (selectedClub ? api(`/api/clubs/${selectedClub._id}/messages?limit=50`) : []),
     enabled: !!selectedClub,
     retry: false,
-  });
-
-  const clubDetailQ = useQuery<ClubDetail>({
-    queryKey: ["clubDetail", selectedClub?._id],
-    queryFn: async () => (selectedClub ? api(`/api/clubs/${selectedClub._id}`) : null),
-    enabled: !!selectedClub,
   });
 
   const membersQ = useQuery<MembersResponse>({
@@ -151,6 +161,28 @@ export default function BookClubs() {
       setReplyText("");
       setReplyFor(null);
       queryClient.invalidateQueries({ queryKey: ["clubMessages", selectedClub!._id] });
+    },
+  });
+
+  const editMessage = useMutation<unknown, Error, { messageId: string; content: string }>({
+    mutationFn: async ({ messageId, content }) =>
+      api(`/api/clubs/${selectedClub!._id}/messages/${messageId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ content }),
+      }),
+    onSuccess: () => {
+      setEditingFor(null);
+      setEditingText("");
+      queryClient.invalidateQueries({ queryKey: ["clubMessages", selectedClub!._id] });
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message.toLowerCase() : "";
+      toast({
+        title: "Edit not allowed",
+        description: "The message cannot be edited as it has already been deleted",
+      });
+      setEditingFor(null);
+      setEditingText("");
     },
   });
 
@@ -395,7 +427,9 @@ export default function BookClubs() {
                       className="shadow-book hover:shadow-elevated transition-all cursor-pointer group"
                       onClick={() => {
                         setSelectedClub(club);
-                        setJoined(false);
+                        const mine = myClubsQ.data?.items || [];
+                        const isMember = mine.some((c) => c._id === club._id);
+                        setJoined(isMember);
                       }}
                     >
                       <CardHeader>
@@ -530,7 +564,7 @@ export default function BookClubs() {
                                   </div>
                                   <p className="text-sm text-foreground mt-1">{m.body}</p>
                                   <div className="flex gap-2 mt-2">
-                                    <Button variant="ghost" size="sm" className="h-8" onClick={() => setReplyFor(m._id)} disabled={!clubDetailQ.data?.isMember}>
+                                    <Button variant="ghost" size="sm" className="h-8" onClick={() => { if (ensureMember()) setReplyFor(m._id); }}>
                                       <MessageCircle className="h-3 w-3 mr-1" />
                                       Reply
                                     </Button>
@@ -542,11 +576,53 @@ export default function BookClubs() {
                                         Delete
                                       </Button>
                                     )}
+                                  {canDelete && (
+                                      <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        className="h-8"
+                                        onClick={() => {
+                                          if (String(m.body || "").trim() === "[deleted]") {
+                                            toast({ description: "The message cannot be edited as it has already been deleted" });
+                                            return;
+                                          }
+                                          setEditingFor(m._id);
+                                          setEditingText(m.body);
+                                        }}
+                                      >
+                                        Edit
+                                      </Button>
+                                    )}
                                   </div>
+                                  {editingFor === m._id && (
+                                    <div className="mt-2 flex gap-2">
+                                      <Input
+                                        placeholder="Edit your message"
+                                        value={editingText}
+                                        onChange={(e) => setEditingText(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter" && editingText.trim()) {
+                                            editMessage.mutate({ messageId: m._id, content: editingText });
+                                          }
+                                        }}
+                                      />
+                                      <Button
+                                        onClick={() => {
+                                          if (editingText.trim()) {
+                                            editMessage.mutate({ messageId: m._id, content: editingText });
+                                          }
+                                        }}
+                                        disabled={!editingText.trim() || editMessage.isPending}
+                                      >
+                                        {editMessage.isPending ? "Saving..." : "Save"}
+                                      </Button>
+                                      <Button variant="outline" onClick={() => { setEditingFor(null); setEditingText(""); }}>Cancel</Button>
+                                    </div>
+                                  )}
                                   {replyFor === m._id && (
                                     <div className="mt-2 flex gap-2">
-                                      <Input placeholder="Write a reply..." value={replyText} onChange={(e) => setReplyText(e.target.value)} disabled={!clubDetailQ.data?.isMember} onKeyDown={(e) => { if (e.key === "Enter" && replyText.trim() && clubDetailQ.data?.isMember) postReply.mutate(); }} />
-                                      <Button onClick={() => postReply.mutate()} disabled={!clubDetailQ.data?.isMember || !replyText.trim() || postReply.isPending}>{postReply.isPending ? "Sending..." : "Send"}</Button>
+                                      <Input placeholder="Write a reply..." value={replyText} readOnly={!isMemberNow} onFocus={() => { if (!isMemberNow) setMustJoinOpen(true); }} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && replyText.trim() && ensureMember()) postReply.mutate(); }} />
+                                      <Button onClick={() => { if (ensureMember()) postReply.mutate(); }} disabled={!replyText.trim() || postReply.isPending}>{postReply.isPending ? "Sending..." : "Send"}</Button>
                                     </div>
                                   )}
                                   {(m.replies || []).map((r) => {
@@ -570,11 +646,51 @@ export default function BookClubs() {
                                             </div>
                                             <p className="text-sm mt-1">{r.body}</p>
                                             {rCanDelete && (
-                                              <div className="mt-2">
+                                              <div className="mt-2 flex gap-2">
                                                 <Button variant="outline" size="sm" onClick={async () => {
                                                   await api(`/api/clubs/${selectedClub!._id}/messages/${r._id}`, { method: "DELETE" }).catch(() => {});
                                                   await queryClient.invalidateQueries({ queryKey: ["clubMessages", selectedClub!._id] });
                                                 }}>Delete</Button>
+                                                <Button
+                                                  variant="secondary"
+                                                  size="sm"
+                                                  onClick={() => {
+                                                    if (String(r.body || "").trim() === "[deleted]") {
+                                                      toast({ description: "The message cannot be edited as it has already been deleted" });
+                                                      return;
+                                                    }
+                                                    setEditingFor(r._id);
+                                                    setEditingText(r.body);
+                                                  }}
+                                                >
+                                                  Edit
+                                                </Button>
+                                              </div>
+                                            )}
+                                            {editingFor === r._id && (
+                                              <div className="mt-2 flex gap-2">
+                                                <Input
+                                                  placeholder="Edit your reply"
+                                                  value={editingText}
+                                                  onChange={(e) => setEditingText(e.target.value)}
+                                                  onKeyDown={(e) => {
+                                                    if (e.key === "Enter" && editingText.trim()) {
+                                                      editMessage.mutate({ messageId: r._id, content: editingText });
+                                                    }
+                                                  }}
+                                                />
+                                                <Button
+                                                  size="sm"
+                                                  onClick={() => {
+                                                    if (editingText.trim()) {
+                                                      editMessage.mutate({ messageId: r._id, content: editingText });
+                                                    }
+                                                  }}
+                                                  disabled={!editingText.trim() || editMessage.isPending}
+                                                >
+                                                  {editMessage.isPending ? "Saving..." : "Save"}
+                                                </Button>
+                                                <Button variant="outline" size="sm" onClick={() => { setEditingFor(null); setEditingText(""); }}>Cancel</Button>
                                               </div>
                                             )}
                                           </div>
@@ -590,12 +706,12 @@ export default function BookClubs() {
 
                         <div className="pt-4">
                           <div className="flex gap-2">
-                            <Input placeholder={clubDetailQ.data?.isMember ? "Join the discussion..." : "Join this club to post"} value={messageText} onChange={(e) => setMessageText(e.target.value)} disabled={!clubDetailQ.data?.isMember} onKeyDown={(e) => {
-                              if (e.key === "Enter" && messageText.trim() && clubDetailQ.data?.isMember) {
+                            <Input placeholder={isMemberNow ? "Join the discussion..." : "Join this club to post"} value={messageText} readOnly={!isMemberNow} onFocus={() => { if (!isMemberNow) setMustJoinOpen(true); }} onChange={(e) => setMessageText(e.target.value)} onKeyDown={(e) => {
+                              if (e.key === "Enter" && messageText.trim() && ensureMember()) {
                                 postMessage.mutate();
                               }
                             }} />
-                            <Button onClick={() => postMessage.mutate()} disabled={!clubDetailQ.data?.isMember || !messageText.trim() || postMessage.isPending}>{postMessage.isPending ? "Posting..." : "Post"}</Button>
+                            <Button onClick={() => { if (ensureMember()) postMessage.mutate(); }} disabled={!messageText.trim() || postMessage.isPending}>{postMessage.isPending ? "Posting..." : "Post"}</Button>
                           </div>
                         </div>
                       </TabsContent>
@@ -718,6 +834,24 @@ export default function BookClubs() {
           </div>
         )}
       </main>
+      {selectedClub && (
+        <Dialog open={mustJoinOpen} onOpenChange={setMustJoinOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Membership Required</DialogTitle>
+              <DialogDescription>you need to be a member of the club to interact</DialogDescription>
+            </DialogHeader>
+            <div className="flex gap-2 pt-2">
+              {selectedClub.isPublic ? (
+                <Button variant="accent" onClick={() => { if (!getToken()) { alert("Please login to join clubs"); return; } joinClub.mutate(); setMustJoinOpen(false); }}>Join Club</Button>
+              ) : (
+                <span className="text-sm text-muted-foreground">This is a private club. Only the leader can invite new members.</span>
+              )}
+              <Button variant="secondary" onClick={() => setMustJoinOpen(false)}>Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

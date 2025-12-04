@@ -127,3 +127,37 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: "Failed to delete message" });
   }
 };
+
+/**
+ * PATCH /api/clubs/:id/messages/:messageId
+ * Edit message body: only author or admin can edit; cannot edit deleted
+ */
+export const editMessage = async (req: AuthRequest, res: Response) => {
+  try {
+    const clubId = String(req.params.id || "");
+    const messageId = String(req.params.messageId || "");
+    const user = req.user;
+    const content = (req.body?.content || "").trim();
+
+    if (!user) return res.status(401).json({ message: "Authentication required" });
+    if (!clubId || !mongoose.Types.ObjectId.isValid(clubId)) return res.status(400).json({ message: "Invalid club id" });
+    if (!messageId || !mongoose.Types.ObjectId.isValid(messageId)) return res.status(400).json({ message: "Invalid message id" });
+    if (!content) return res.status(400).json({ message: "Message required" });
+    if (content.length > 2000) return res.status(400).json({ message: "Message too long" });
+
+    const msg = await MessageModel.findById(messageId).lean();
+    if (!msg || String(msg.clubId) !== String(clubId)) return res.status(404).json({ message: "Message not found" });
+    if (msg.deleted) return res.status(400).json({ message: "Cannot edit deleted message" });
+
+    const isOwner = String(msg.senderId) === String(user._id);
+    const isAdmin = Array.isArray(user.roles) && user.roles.includes("admin");
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: "Not allowed" });
+
+    await MessageModel.findByIdAndUpdate(messageId, { $set: { body: content } });
+    const updated = await MessageModel.findById(messageId).populate({ path: "senderId", select: "username" });
+    return res.json(updated);
+  } catch (err) {
+    console.error("editMessage err", err);
+    return res.status(500).json({ message: "Failed to edit message" });
+  }
+};

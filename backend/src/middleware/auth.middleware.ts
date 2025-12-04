@@ -89,6 +89,31 @@ function authGuard(req: Request, res: Response, next: NextFunction) {
 export default authGuard;      // default import: import authGuard from "./auth.middleware"
 export const requireAuth = authGuard;   // named import: import { requireAuth } from "./auth.middleware"
 
+// Optional auth: parse token if present, otherwise continue without error
+export function optionalAuth(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return next();
+  }
+  const token = authHeader.split(" ")[1]?.trim();
+  if (!token) return next();
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (typeof decoded === "object" && decoded !== null && (decoded as any).userId && (decoded as any).email) {
+      const { userId, email, roles } = decoded as any;
+      req.user = {
+        _id: userId,
+        id: userId,
+        email,
+        roles: Array.isArray(roles) ? roles : [],
+      };
+    }
+  } catch {
+    // ignore invalid token for optional auth
+  }
+  return next();
+}
+
 // Typed request for your controllers and middlewares
 export type AuthRequest = Request & {
   user?: { 
