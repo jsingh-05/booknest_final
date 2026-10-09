@@ -546,7 +546,15 @@ export default function BookClubs() {
                             const senderId = typeof m.senderId === "string"
                               ? m.senderId
                               : ((m.senderId as unknown as SenderPopulated)?._id || "");
-                            const canDelete = Boolean(meQ.data?.user?.id) && String(meQ.data!.user!.id) === String(senderId || "");
+                            const isAuthor = Boolean(meQ.data?.user?.id) &&
+                              String(meQ.data!.user!.id) === String(senderId || "");
+                            const isLeader = Boolean(meQ.data?.user?.id) &&
+                              (membersQ.data?.items || []).some(
+                                (member) =>
+                                  String(member.userId) === String(meQ.data!.user!.id) &&
+                                  member.role === "leader"
+                              );
+                            const canDelete = isAuthor || isLeader;
                             return (
                               <div
                                 key={m._id}
@@ -569,14 +577,32 @@ export default function BookClubs() {
                                       Reply
                                     </Button>
                                     {canDelete && (
-                                      <Button variant="outline" size="sm" className="h-8" onClick={async () => {
-                                        await api(`/api/clubs/${selectedClub!._id}/messages/${m._id}`, { method: "DELETE" }).catch(() => {});
-                                        await queryClient.invalidateQueries({ queryKey: ["clubMessages", selectedClub!._id] });
-                                      }}>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8"
+                                        onClick={async () => {
+                                          try {
+                                            await api(`/api/clubs/${selectedClub!._id}/messages/${m._id}`, {
+                                              method: "DELETE",
+                                            });
+                                            await queryClient.invalidateQueries({
+                                              queryKey: ["clubMessages", selectedClub!._id],
+                                            });
+                                            toast({ description: "Message deleted." });
+                                          } catch (err) {
+                                            toast({
+                                              title: "Could not delete message",
+                                              description: err instanceof Error ? err.message : "Please try again.",
+                                              variant: "destructive",
+                                            });
+                                          }
+                                        }}
+                                      >
                                         Delete
                                       </Button>
                                     )}
-                                  {canDelete && (
+                                  {isAuthor && (
                                       <Button
                                         variant="secondary"
                                         size="sm"
@@ -629,10 +655,11 @@ export default function BookClubs() {
                                     const runame = typeof r.senderId === "string" ? r.senderId : (r.senderId?.username ?? "Member");
                                     const rSenderId = typeof r.senderId === "string"
                                       ? r.senderId
-                                      : ((r.senderId as unknown as SenderPopulated)?._id || "");
-                                    const rCanDelete = Boolean(meQ.data?.user?.id) && String(meQ.data!.user!.id) === String(rSenderId || "");
-                                    const rinitials = runame ? runame.split(" ").map(s => s[0]).join("").slice(0, 2).toUpperCase() : "U";
-                                    const rtime = new Date(r.createdAt).toLocaleString();
+                                      : ((r.senderId as unknown as SenderPopulated)?._id || "");                                    const rinitials = runame ? runame.split(" ").map(s => s[0]).join("").slice(0, 2).toUpperCase() : "U";
+                                    const rIsAuthor = Boolean(meQ.data?.user?.id) &&
+                                      String(meQ.data!.user!.id) === String(rSenderId || "");
+                                    const rCanDelete = rIsAuthor || isLeader;
+                                      const rtime = new Date(r.createdAt).toLocaleString();
                                     return (
                                       <div key={r._id} className="mt-3 ml-8 p-3 rounded bg-background border">
                                         <div className="flex items-center gap-2">
@@ -645,26 +672,30 @@ export default function BookClubs() {
                                               <span className="text-xs text-muted-foreground">{rtime}</span>
                                             </div>
                                             <p className="text-sm mt-1">{r.body}</p>
-                                            {rCanDelete && (
+                                            {(rCanDelete || rIsAuthor) && (
                                               <div className="mt-2 flex gap-2">
-                                                <Button variant="outline" size="sm" onClick={async () => {
-                                                  await api(`/api/clubs/${selectedClub!._id}/messages/${r._id}`, { method: "DELETE" }).catch(() => {});
-                                                  await queryClient.invalidateQueries({ queryKey: ["clubMessages", selectedClub!._id] });
-                                                }}>Delete</Button>
-                                                <Button
-                                                  variant="secondary"
-                                                  size="sm"
-                                                  onClick={() => {
-                                                    if (String(r.body || "").trim() === "[deleted]") {
-                                                      toast({ description: "The message cannot be edited as it has already been deleted" });
-                                                      return;
-                                                    }
-                                                    setEditingFor(r._id);
-                                                    setEditingText(r.body);
-                                                  }}
-                                                >
-                                                  Edit
-                                                </Button>
+                                                {rCanDelete && (
+                                                  <Button variant="outline" size="sm" onClick={async () => {
+                                                    await api(`/api/clubs/${selectedClub!._id}/messages/${r._id}`, { method: "DELETE" }).catch(() => {});
+                                                    await queryClient.invalidateQueries({ queryKey: ["clubMessages", selectedClub!._id] });
+                                                  }}>Delete</Button>
+                                                )}
+                                                {rIsAuthor && (
+                                                  <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                      if (String(r.body || "").trim() === "[deleted]") {
+                                                        toast({ description: "The message cannot be edited as it has already been deleted" });
+                                                        return;
+                                                      }
+                                                      setEditingFor(r._id);
+                                                      setEditingText(r.body);
+                                                    }}
+                                                  >
+                                                    Edit
+                                                  </Button>
+                                                )}
                                               </div>
                                             )}
                                             {editingFor === r._id && (

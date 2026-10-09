@@ -11,7 +11,6 @@ import SearchBooks from "./pages/SearchBooks";
 import BookClubs from "./pages/BookClubs";
 import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
-import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,7 +60,6 @@ const App = () => (
             <Route path="/clubs" element={<RequireAuth><BookClubs /></RequireAuth>} />
             <Route path="/leaderboard" element={<RequireAuth><Leaderboard /></RequireAuth>} />
             <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
-            <Route path="/admin" element={<RequireAuth><AdminDashboard /></RequireAuth>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
