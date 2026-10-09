@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { MessageModel } from "../models/message.model";
 import { ClubModel } from "../models/club.model";
+import { ClubMembershipModel } from "../models/clubMembership.model";
 
 /**
  * POST /api/clubs/:id/messages
@@ -102,7 +103,7 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
 
 /**
  * DELETE /api/clubs/:id/messages/:messageId
- * Soft-delete: only author or admin can delete; keep thread
+ * Soft-delete: the author or a leader of this club can delete; keep thread
  */
 export const deleteMessage = async (req: AuthRequest, res: Response) => {
   try {
@@ -117,8 +118,12 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
     if (!msg || String(msg.clubId) !== String(clubId)) return res.status(404).json({ message: "Message not found" });
 
     const isOwner = String(msg.senderId) === String(user._id);
-    const isAdmin = Array.isArray(user.roles) && user.roles.includes("admin");
-    if (!isOwner && !isAdmin) return res.status(403).json({ message: "Not allowed" });
+    let isLeader = false;
+    if (!isOwner) {
+      const leader = await ClubMembershipModel.findOne({ clubId, userId: user._id, role: "leader", active: true }).lean();
+      isLeader = Boolean(leader);
+    }
+    if (!isOwner && !isLeader) return res.status(403).json({ message: "Only the author or a club leader can delete this message" });
 
     await MessageModel.findByIdAndUpdate(messageId, { $set: { deleted: true, deletedAt: new Date(), body: "" } });
     return res.json({ ok: true });
@@ -130,7 +135,7 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
 
 /**
  * PATCH /api/clubs/:id/messages/:messageId
- * Edit message body: only author or admin can edit; cannot edit deleted
+ * Edit message body: only the author can edit; cannot edit deleted
  */
 export const editMessage = async (req: AuthRequest, res: Response) => {
   try {
@@ -150,8 +155,7 @@ export const editMessage = async (req: AuthRequest, res: Response) => {
     if (msg.deleted) return res.status(400).json({ message: "Cannot edit deleted message" });
 
     const isOwner = String(msg.senderId) === String(user._id);
-    const isAdmin = Array.isArray(user.roles) && user.roles.includes("admin");
-    if (!isOwner && !isAdmin) return res.status(403).json({ message: "Not allowed" });
+    if (!isOwner) return res.status(403).json({ message: "Not allowed" });
 
     await MessageModel.findByIdAndUpdate(messageId, { $set: { body: content } });
     const updated = await MessageModel.findById(messageId).populate({ path: "senderId", select: "username" });

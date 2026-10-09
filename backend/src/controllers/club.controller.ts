@@ -152,8 +152,7 @@ export const getClub = async (req: any, res: Response) => {
 
     if (!club.isPublic) {
       const membership = await ClubMembershipModel.findOne({ clubId, userId: req.user?._id, active: true });
-      const isAdmin = req.user?.roles?.includes("admin");
-      if (!membership && !isAdmin) return res.status(403).json({ message: "Private club" });
+      if (!membership) return res.status(403).json({ message: "Private club" });
     }
 
     const isMember = Boolean(await ClubMembershipModel.findOne({ clubId, userId: req.user?._id, active: true }));
@@ -205,8 +204,7 @@ export const createInvite = async (req: any, res: Response) => {
 
     // require leader
     const leader = await ClubMembershipModel.findOne({ clubId, userId: inviterId, role: "leader", active: true });
-    const isAdmin = req.user?.roles?.includes("admin");
-    if (!leader && !isAdmin) return res.status(403).json({ message: "Only leaders can invite" });
+    if (!leader) return res.status(403).json({ message: "Only leaders can invite" });
 
     const token = crypto.randomBytes(16).toString("hex");
     const expiresAt = new Date(Date.now() + Number(expiresInHours) * 3600 * 1000);
@@ -267,10 +265,9 @@ export const setTheme = async (req: any, res: Response) => {
     else if (length === "month") expiresAt.setMonth(expiresAt.getMonth() + 1);
     else expiresAt = new Date(startsAt); // zero-length -> immediate expiry (not recommended)
 
-    // permission: leader or admin
+    // permission: leader only
     const isLeader = await ClubMembershipModel.findOne({ clubId, userId: req.user._id, role: "leader", active: true });
-    const isAdmin = req.user?.roles?.includes("admin");
-    if (!isLeader && !isAdmin) return res.status(403).json({ message: "Only leaders can set theme" });
+    if (!isLeader) return res.status(403).json({ message: "Only leaders can set theme" });
 
     const club = await ClubModel.findByIdAndUpdate(clubId, { theme: { title, startsAt, expiresAt } }, { new: true });
     return res.json({ message: "Theme set", theme: club?.theme });
@@ -289,8 +286,7 @@ export const setCurrentBook = async (req: any, res: Response) => {
     const { title, authors = [], coverUrl, totalPages } = req.body || {};
 
     const isLeader = await ClubMembershipModel.findOne({ clubId, userId: req.user._id, role: "leader", active: true });
-    const isAdmin = req.user?.roles?.includes("admin");
-    if (!isLeader && !isAdmin) return res.status(403).json({ message: "Only leaders can set book" });
+    if (!isLeader) return res.status(403).json({ message: "Only leaders can set book" });
 
     const club = await ClubModel.findByIdAndUpdate(clubId, { currentBook: { title, authors, coverUrl, totalPages } }, { new: true });
     return res.json({ message: "Current book updated", currentBook: club?.currentBook });
@@ -311,8 +307,7 @@ export const listMembers = async (req: any, res: Response) => {
     if (!club) return res.status(404).json({ message: "Club not found" });
     if (!club.isPublic) {
       const membership = await ClubMembershipModel.findOne({ clubId, userId: req.user?._id, active: true });
-      const isAdmin = req.user?.roles?.includes("admin");
-      if (!membership && !isAdmin) return res.status(403).json({ message: "Private club" });
+      if (!membership) return res.status(403).json({ message: "Private club" });
     }
     const memberships = await ClubMembershipModel.find({ clubId, active: true }).populate({ path: "userId", select: "username email" }).lean();
     const items = memberships.map(m => ({
@@ -336,8 +331,7 @@ export const addScheduleItem = async (req: any, res: Response) => {
     const { title, order, dueDate } = req.body || {};
     if (!title) return res.status(400).json({ message: "title required" });
     const isLeader = await ClubMembershipModel.findOne({ clubId, userId: req.user._id, role: "leader", active: true });
-    const isAdmin = req.user?.roles?.includes("admin");
-    if (!isLeader && !isAdmin) return res.status(403).json({ message: "Only leaders can edit schedule" });
+    if (!isLeader) return res.status(403).json({ message: "Only leaders can edit schedule" });
     const update = { $push: { readingSchedule: { title, order: Number(order) || 0, dueDate: dueDate ? new Date(dueDate) : undefined, completed: false } } };
     const club = await ClubModel.findByIdAndUpdate(clubId, update, { new: true });
     return res.status(201).json({ readingSchedule: club?.readingSchedule || [] });
@@ -356,8 +350,7 @@ export const toggleScheduleItem = async (req: any, res: Response) => {
     const itemId = req.params.itemId;
     const { completed } = req.body || {};
     const isLeader = await ClubMembershipModel.findOne({ clubId, userId: req.user._id, role: "leader", active: true });
-    const isAdmin = req.user?.roles?.includes("admin");
-    if (!isLeader && !isAdmin) return res.status(403).json({ message: "Only leaders can edit schedule" });
+    if (!isLeader) return res.status(403).json({ message: "Only leaders can edit schedule" });
     const club = await ClubModel.findOneAndUpdate(
       { _id: clubId, "readingSchedule._id": itemId },
       { $set: { "readingSchedule.$.completed": Boolean(completed) } },
@@ -379,8 +372,7 @@ export const deleteScheduleItem = async (req: any, res: Response) => {
     const clubId = req.params.id;
     const itemId = req.params.itemId;
     const isLeader = await ClubMembershipModel.findOne({ clubId, userId: req.user._id, role: "leader", active: true });
-    const isAdmin = req.user?.roles?.includes("admin");
-    if (!isLeader && !isAdmin) return res.status(403).json({ message: "Only leaders can edit schedule" });
+    if (!isLeader) return res.status(403).json({ message: "Only leaders can edit schedule" });
     const club = await ClubModel.findByIdAndUpdate(
       clubId,
       { $pull: { readingSchedule: { _id: itemId } } },

@@ -25,9 +25,8 @@ export const requireMembership = async (
     active: true,
   });
 
-  const isAdmin = Array.isArray(req.user?.roles) && req.user!.roles!.includes("admin");
 
-  if (!membership && !isAdmin) {
+  if (!membership) {
     return res.status(403).json({ message: "You are not a member of this club." });
   }
 
@@ -53,8 +52,7 @@ export const allowPublicView = async (
   const membership = await import("../models/clubMembership.model");
   const { ClubMembershipModel } = membership as any;
   const m = await ClubMembershipModel.findOne({ clubId, userId, active: true });
-  const isAdmin = Array.isArray(req.user?.roles) && req.user!.roles!.includes("admin");
-  if (!m && !isAdmin) return res.status(403).json({ message: "Private club" });
+  if (!m) return res.status(403).json({ message: "Private club" });
   next();
 };
 
@@ -80,8 +78,7 @@ export const requireClubLeader = async (
     role: "leader",
     active: true,
   });
-const isAdmin = Array.isArray(req.user?.roles) && req.user!.roles!.includes("admin");
-  if (!membership && !isAdmin) {
+  if (!membership) {
     return res.status(403).json({ message: "Only club leaders can do this action." });
   }
 req.membership = membership;
