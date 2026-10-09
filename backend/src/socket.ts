@@ -53,10 +53,9 @@ export function createSocketServer(httpServer: http.Server) {
         const { clubId } = payload;
         if (!mongoose.Types.ObjectId.isValid(clubId)) return ack?.({ ok: false, error: "Invalid clubId" });
 
-        // ensure user is member (or admin)
+        // ensure user is a member
         const isMember = await ClubMembershipModel.findOne({ clubId, userId: user._id, active: true });
-        const isAdmin = Array.isArray(user.roles) && user.roles.includes("admin");
-        if (!isMember && !isAdmin) return ack?.({ ok: false, error: "Not a member" });
+        if (!isMember) return ack?.({ ok: false, error: "Not a member" });
 
         socket.join(`club_${clubId}`);
         return ack?.({ ok: true });
@@ -83,8 +82,7 @@ export function createSocketServer(httpServer: http.Server) {
 
         // membership check (enforce server-side)
         const isMember = await ClubMembershipModel.findOne({ clubId, userId: user._id, active: true });
-        const isAdmin = Array.isArray(user.roles) && user.roles.includes("admin");
-        if (!isMember && !isAdmin) return ack?.({ ok: false, error: "Not a member" });
+        if (!isMember) return ack?.({ ok: false, error: "Not a member" });
 
         // Persist message
         const message = await MessageModel.create({
